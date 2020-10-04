@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <title>Heads or Tails</title>
+    <script src="https://code.jquery.com/jquery-3.4.1.min.js"
+      integrity="sha256-CSXorXvZcTkaix6Yvo6HppcZGetbYMGWSFlBw8HfCJo="
+      crossorigin="anonymous"></script>
+    <script type="text/javascript" src="./web3.min.js"></script>
+    <script type="text/javascript" src="./abi.js"></script>
+    <script type="text/javascript" src="./main.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.min.js" integrity="sha384-wfSDF2E50Y2D1uUdj0O3uMBJnjuUD4Ih7YwaYd1iqfktj0Uod8GCExl3Og8ifwB6" crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css" integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh" crossorigin="anonymous">
+
+  </head>
+  <body>
+    <div class="jumbotron jumbotron-fluid">
+      <div class="container">
+        <h1 class="display-4">Heads Or Tails</h1>
+        <p class="lead">Double or nothing! </p>
+      </div>
+    </div>
+    <div class="container">
+      <div>
+        <h2>Place your bets!</h2>
+        <div class="input-group mb-3">
+          <input type="number" step="0.01" min="0" class="form-control" id="bet_input" placeholder="Bet Amount (in ETH)" >
+        </div>
+        <button type="button" id="heads_button" class="btn btn-primary">Heads</button>         <button type="button" id="tails_button" class="btn btn-primary">Tails</button>
+      </div>
+      <div>
+        <h2>Withdraw Funds</h2>
+        <p class="lead;font-size:8px;">(Contract Owner Only) </p>
+        <div>
+          <input type="number" step="1" min="0" class="form-control" id="withdraw_funds_output" placeholder="Withdrawal Amount (in whole numbers of ETH (e.g. 1, 2, 3, etc....))" >
+        </div>
+        <button type="button" id="withdraw_funds_button" class="btn btn-primary">Withdraw</button>
+      </div>
+      <div>
+        <h2>Top-up Contract Balance</h2>
+        <p class="lead;font-size:8px;">WARNING: This is NOT used for betting! All transfers to this contract are voluntary and final. </p>
+        <div>
+          <input type="number" step="0.01" min="0" class="form-control" id="top_up_input" placeholder="Donate (in ETH)" >
+        </div>
+        <button type="button" id="top_up_button" class="btn btn-primary">Top-up</button>
+      </div>
+      <div>
+        <h2>Get Contract Balance</h2>
+        <p class="lead;font-size:8px;">(Contract Owner Only) </p>
+        <div>
+          Balance: <span id="balance_output"></span>
+        </div>
+        <button type="button" id="get_contract_balance_button" class="btn btn-primary">Get Balance</button>
+      </div>
+    </div>
+
+
+  </body>
+</html>
