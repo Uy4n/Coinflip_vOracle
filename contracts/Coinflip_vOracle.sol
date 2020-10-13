@@ -25,12 +25,11 @@ contract Coinflip_vOracle is Ownable, Selfdestructable, usingProvable{
         public
     {
         //21/09/20 these constructors don't currently work in remix.eth
-        provable_setCustomGasPrice(4000000000);
+        provable_setCustomGasPrice(80000000000);
         provable_setProof(proofType_Ledger);
         update();
     }
     */
-
 
     mapping (address => Player) private playersId;
     mapping (bytes32 => bool) private isWaiting; // true = can't open another game, false = can open a game
@@ -40,6 +39,7 @@ contract Coinflip_vOracle is Ownable, Selfdestructable, usingProvable{
     event WithdrawComplete (address owner, uint balanceToTransfer);
     // Uncomment the LogNewProvableQuery line once ready to deploy on Ropsten
     event LogNewProvableQuery (string description);
+    event provableQuerySent(string message, address creator);
     event GeneratedRandomNumber (uint256 randomNumber);
 
     modifier costs(uint cost)
@@ -50,6 +50,7 @@ contract Coinflip_vOracle is Ownable, Selfdestructable, usingProvable{
 
     modifier lessThanBalance(uint value)
     {
+        //require(balance >= 0);
         require(2 * msg.value < value, "Your bet is higher than this contract's value!");
         _;
     }
@@ -65,7 +66,7 @@ contract Coinflip_vOracle is Ownable, Selfdestructable, usingProvable{
         playersId[msg.sender] = bet;
     }
 
-        // Make the player able to play as much as they want, then withdraw ALL AT
+    // Make the player able to play as much as they want, then withdraw ALL AT
     // ONCE, once they are finished playing the game
 
     function flipCoin(uint betValue, bool headsOrTails)
@@ -74,47 +75,50 @@ contract Coinflip_vOracle is Ownable, Selfdestructable, usingProvable{
         costs(0.01 ether)
         lessThanBalance(balance)
     {
+        // intialize the player's queryId
+        bytes32 queryId;
 
-        /*
+        //callOracle();
+        testRandom();
+
+        createBet(queryId, msg.sender, betValue, headsOrTails);
+    }
+
+    function callOracle()
+        payable
+        public
+        returns(bytes32)
+    {
         uint256 QUERY_EXECUTION_DELAY = 0;
         uint256 GAS_FOR_CALLBACK = 200000;
-        */
-        /*
         bytes32 queryId = provable_newRandomDSQuery
         (
             QUERY_EXECUTION_DELAY,
             NUM_RANDOM_BYTES_REQUESTED,
             GAS_FOR_CALLBACK
         );
-        */
-
-        bytes32 queryId = testRandom();
-
-        createBet(queryId, msg.sender, betValue, headsOrTails);
-        emit LogNewProvableQuery("Provable query was sent, standing by for callback..."); //doesn't work with test function?
+        emit LogNewProvableQuery("Provable query was sent, standing by for callback...");
+        return queryId;
     }
 
-    // use when testing, but when you want to avoid testnet delays
+    // use when you want to test, but also want to avoid testnet delays
     function testRandom()
         public
         returns(bytes32)
     {
         bytes32 queryId = bytes32(keccak256(abi.encodePacked(msg.sender)));
         __callback(queryId, "1", bytes("test"));
+        emit provableQuerySent("Test queried", msg.sender);
         return queryId;
     }
 
-    // Uncomment once ready to deploy on Ropsten test network
     function __callback(bytes32 _queryId, string memory _result, bytes memory _proof)
         public
         override
     {
         //Only the oracle should be able to call this function
-        //require(msg.sender == provable_cbAddress());
+        require(msg.sender == provable_cbAddress());
 
-        //emit logCallbackResult(_queryId, _result, _proof);
-
-        /*
         if (
             provable_randomDS_proofVerify__returnCode(
                 _queryId,
@@ -123,33 +127,42 @@ contract Coinflip_vOracle is Ownable, Selfdestructable, usingProvable{
             ) != 0
         )
         {
-
+            isWaiting[_queryId] = false;
+            revert();
         }
         else
         {
-        */
+            uint256 randomNumber = uint256(keccak256(abi.encodePacked(_result))) % 2;
+            resultFlipCoin(_queryId, randomNumber);
+        }
+    }
 
-        uint256 randomNumber = uint256(keccak256(abi.encodePacked(_result))) % 2;
+    function resultFlipCoin(bytes32 _queryId, uint256 randomNumber)
+        private
+    {
         latestNumber = randomNumber;
         emit GeneratedRandomNumber(latestNumber);
 
         string memory message;
 
-        bool headsOrTails = players[_queryId].headsOrTails;
-        //uint256 uintHeadsOrTails = headsOrTails ? 1 : 0;
-        uint256 uintHeadsOrTails;
-        if(headsOrTails == true)
+        bool boolRandomNumber;
+        if(randomNumber == 1)
         {
-            uintHeadsOrTails = 1;
+            boolRandomNumber = true;
+        }
+        else if(randomNumber == 0)
+        {
+            boolRandomNumber = false;
         }
         else
         {
-            uintHeadsOrTails = 0;
+            assert(false);
         }
 
         uint betValue = players[_queryId].betAmount;
+        bool headsOrTails = players[_queryId].headsOrTails;
 
-        if(uintHeadsOrTails == randomNumber)
+        if(headsOrTails == boolRandomNumber)
         {
             message = "You won!";
             players[_queryId].playerBalance += 2 * betValue;
@@ -167,23 +180,25 @@ contract Coinflip_vOracle is Ownable, Selfdestructable, usingProvable{
         }
         emit FlipResult(message, players[_queryId].playerAddress, _queryId);
         isWaiting[_queryId] = false;
-
     }
 
+    // function possibly not needed?
     function update()
         payable
         public
     {
         uint256 QUERY_EXECUTION_DELAY = 0;
-        uint256 GAS_FOR_CALLBACK = 200000;
-        bytes32 queryId = testRandom();
-        /*
-        bytes32 queryId = provable_newRandomDSQuery(
+        uint256 GAS_FOR_CALLBACK = 30000000;
+        //bytes32 queryId = testRandom();
+
+        //commented line below not needed?
+        //bytes32 queryId =
+        provable_newRandomDSQuery(
             QUERY_EXECUTION_DELAY,
             NUM_RANDOM_BYTES_REQUESTED,
             GAS_FOR_CALLBACK
         );
-        */
+
         emit LogNewProvableQuery("Provable query was sent, standing by for callback...");
     }
 
@@ -194,7 +209,6 @@ contract Coinflip_vOracle is Ownable, Selfdestructable, usingProvable{
     {
         string memory message = "Thank you for your generosity!";
         balance += msg.value;
-        //return string("Thanks for your generosity!");
         return message;
     }
 
@@ -214,10 +228,9 @@ contract Coinflip_vOracle is Ownable, Selfdestructable, usingProvable{
         string memory message = "Withdrawal Successful!";
         uint playerWithdrawAmount = playersId[msg.sender].playerBalance;
         require(playerWithdrawAmount <= playersId[msg.sender].playerBalance, "You can't withdraw that much!");
-        //require(isWaiting[queryId] = false);
+        //require(isWaiting[queryId] == false);
         playersId[msg.sender].playerBalance = 0;
         msg.sender.transfer(playerWithdrawAmount);
-        //return playerWithdrawAmount;
         return message;
     }
 
